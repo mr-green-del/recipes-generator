@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  webserver:
+    image: nginx:${NGINX_VERSION}
+    depends_on:
+      - application
+    volumes:
+      - ../:/var/www/html:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
+    ports:
+      - '8080:80'
+    environment:
+      NGINX_HOST: ${COMPOSE_PROJECT_NAME}.test
+      NGINX_ROOT: ${NGINX_ROOT}
+
+  application:
+    build:
+      context: php-fpm
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+        PROJECT_ROOT: ${PROJECT_ROOT}
+    user: "1000:1000"
+    image: ${COMPOSE_PROJECT_NAME}-php-fpm
+    depends_on:
+      - database
+    volumes:
+      - ../:${PROJECT_ROOT}
+      - ./php-fpm/config/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
+    environment:
+      PHP_IDE_CONFIG: "serverName=${COMPOSE_PROJECT_NAME}.test"
+
+  database:
+    image: postgres:${POSTGRES_VERSION}
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:6432:5432'
+    environment:
+      POSTGRES_DB: ${COMPOSE_PROJECT_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+volumes:
+  database-data:
+    name: ${COMPOSE_PROJECT_NAME}-database-data
